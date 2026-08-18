@@ -1,0 +1,9 @@
+{
+  "name": "daily-app-cosmic-age",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8765",
+    "test": "node test.js"
+  }
+}

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmic Age — Your Age Across the Solar System</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌌</text></svg>">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 800px at 70% -10%, #16213e 0%, #0a0e1a 55%, #05070d 100%);
+    color: #e8ecf8;
+    min-height: 100vh;
+  }
+  #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .wrap { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 40px 20px 60px; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 {
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    letter-spacing: .5px;
+    background: linear-gradient(90deg, #7fd1ff, #c084fc, #ff9a9e);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { color: #8ea0c9; margin-top: 6px; font-size: .95rem; }
+  .controls {
+    display: flex; gap: 10px; justify-content: center; align-items: center;
+    flex-wrap: wrap; margin: 20px 0 6px;
+  }
+  input[type="date"] {
+    background: #141a2e; color: #e8ecf8; border: 1px solid #2b3654;
+    border-radius: 10px; padding: 10px 14px; font-size: 1rem; color-scheme: dark;
+  }
+  input[type="date"]:focus { outline: none; border-color: #7fd1ff; }
+  button {
+    background: linear-gradient(135deg, #4f7cff, #a05bff);
+    color: #fff; border: none; border-radius: 10px;
+    padding: 11px 20px; font-size: 1rem; font-weight: 600; cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  button:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,124,255,.35); }
+  button:active { transform: translateY(0); }
+  button.secondary {
+    background: #1c2440; color: #aebdf0; border: 1px solid #2b3654;
+  }
+  button.secondary:hover { box-shadow: none; }
+  #err { text-align: center; color: #ff8a80; min-height: 1.4em; margin-top: 8px; font-size: .9rem; }
+  .empty { text-align: center; color: #8ea0c9; padding: 50px 10px 40px; }
+  .empty .big { font-size: 2.4rem; margin-bottom: 10px; }
+  .hidden { display: none !important; }
+
+  .earth-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px;
+  }
+  .stat {
+    background: #101528cc; border: 1px solid #232d4d; border-radius: 14px;
+    padding: 14px 12px; text-align: center;
+  }
+  .stat .label { font-size: .72rem; text-transform: uppercase; letter-spacing: 1px; color: #8ea0c9; }
+  .stat .value { font-size: 1.15rem; font-weight: 700; margin-top: 4px; }
+  .stat .value small { font-weight: 400; color: #8ea0c9; }
+  #earthCard { border-color: #4fc3f7; box-shadow: 0 0 18px #4fc3f733; }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
+    gap: 14px; margin-top: 18px;
+  }
+  .card {
+    background: #101528cc; border: 1px solid #232d4d; border-radius: 14px;
+    padding: 16px 10px 14px; text-align: center;
+  }
+  .card .name { font-weight: 600; font-size: .92rem; letter-spacing: .3px; }
+  .badge {
+    display: inline-block; font-size: .62rem; text-transform: uppercase; letter-spacing: 1px;
+    background: #4fc3f733; color: #7fd1ff; border: 1px solid #4fc3f755;
+    border-radius: 999px; padding: 2px 8px; margin-left: 6px; vertical-align: middle;
+  }
+  .card .age { font-size: 1.05rem; font-weight: 700; margin-top: 4px; }
+  .card .caption { font-size: .72rem; color: #8ea0c9; margin-top: 3px; }
+
+  /* Planets */
+  .planet { width: 62px; height: 62px; margin: 0 auto 10px; border-radius: 50%; position: relative; }
+  .planet.moon { background: radial-gradient(circle at 32% 30%, #f5f7fa, #c9d2dc 48%, #8b98a8 72%, #6b778a); box-shadow: 0 0 14px #aebdcc88; }
+  .planet.mercury { background: radial-gradient(circle at 35% 30%, #cfd8dc, #90a4ae 55%, #5d6d78); box-shadow: 0 0 14px #90a4ae66; }
+  .planet.venus { background: radial-gradient(circle at 32% 30%, #fff3d6, #ffd87a 50%, #c68a12); box-shadow: 0 0 16px #ffd87a66; }
+  .planet.earth { background: radial-gradient(circle at 34% 30%, #b3e5fc, #29b6f6 38%, #1e88e5 52%, #43a047 72%, #14532d); box-shadow: 0 0 18px #29b6f699; }
+  .planet.mars { background: radial-gradient(circle at 34% 30%, #ffab91, #ef5350 50%, #982a1f 75%, #5c150e); box-shadow: 0 0 14px #ef535077; }
+  .planet.jupiter {
+    background: repeating-linear-gradient(12deg, #f5c98a 0 7px, #d2803a 7px 12px, #f0b06b 12px 19px, #b75f28 19px 23px, #e8a35f 23px 30px);
+    box-shadow: 0 0 16px #f0b06b66;
+  }
+  .planet.saturn {
+    background: repeating-linear-gradient(10deg, #efdcae 0 6px, #c9a876 6px 12px, #e6cd97 12px 20px);
+    box-shadow: 0 0 16px #efdcae55;
+  }
+  .planet.saturn::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    width: 92px; height: 18px; border-radius: 50%;
+    border: 3px solid rgba(239, 220, 174, .8);
+    transform: translate(-50%, -50%) rotate(-18deg);
+  }
+  .planet.uranus { background: radial-gradient(circle at 32% 30%, #d2f7ff, #67d6ef 55%, #1f8ba8); box-shadow: 0 0 14px #67d6ef66; }
+  .planet.neptune { background: radial-gradient(circle at 32% 30%, #8fb8ff, #3d6cf0 55%, #16237a); box-shadow: 0 0 16px #3d6cf077; }
+  .planet.pluto { background: radial-gradient(circle at 35% 30%, #e8ddd3, #b49a86 55%, #6e5748); box-shadow: 0 0 12px #b49a8666; }
+
+  .fact { text-align: center; color: #8ea0c9; font-size: .88rem; margin-top: 22px; line-height: 1.5; }
+  footer { text-align: center; color: #5b6a8f; font-size: .78rem; margin-top: 26px; }
+
+  @media (max-width: 520px) {
+    .earth-stats { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .controls { flex-direction: column; }
+    input[type="date"] { width: 100%; max-width: 280px; }
+    button { width: 100%; max-width: 280px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="wrap">
+  <header>
+    <h1>🌌 Cosmic Age</h1>
+    <p class="sub">Enter your birthday and see how old you are on every world in the Solar System.</p>
+  </header>
+
+  <div class="controls">
+    <input type="date" id="birthInput" aria-label="Birth date" min="1900-01-01">
+    <button id="calcBtn">Reveal my age</button>
+    <button id="resetBtn" class="secondary">Reset</button>
+  </div>
+  <div id="err" role="alert"></div>
+
+  <div id="emptyState" class="empty">
+    <div class="big">🪐</div>
+    <p>One trip around the Sun is a year on Earth —<br>but Mercury zips around in 88 days, and Neptune takes 165 years.<br>Pick a date and see the difference.</p>
+  </div>
+
+  <div id="results" class="hidden">
+    <div class="earth-stats" id="earthStats"></div>
+    <div class="grid" id="bodyGrid"></div>
+    <p class="fact" id="funFact"></p>
+  </div>
+
+  <footer>Orbital periods are sidereal years · Cosmic Age v1.0</footer>
+</div>
+
+<script>
+'use strict';
+(function () {
+  const DAY_MS = 86400000;
+  const YEAR_MS = 365.2425 * DAY_MS;
+
+  const BODIES = [
+    { id: 'moon', name: 'Moon', period: 27.3217 / 365.2425, tagline: '27.3 Earth days' },
+    { id: 'mercury', name: 'Mercury', period: 0.240846, tagline: '88 Earth days' },
+    { id: 'venus', name: 'Venus', period: 0.615198, tagline: '225 Earth days' },
+    { id: 'earth', name: 'Earth', period: 1, tagline: '365.25 days' },
+    { id: 'mars', name: 'Mars', period: 1.88082, tagline: '687 Earth days' },
+    { id: 'jupiter', name: 'Jupiter', period: 11.8626, tagline: '11.9 Earth years' },
+    { id: 'saturn', name: 'Saturn', period: 29.4571, tagline: '29.5 Earth years' },
+    { id: 'uranus', name: 'Uranus', period: 84.0205, tagline: '84 Earth years' },
+    { id: 'neptune', name: 'Neptune', period: 164.8, tagline: '165 Earth years' },
+    { id: 'pluto', name: 'Pluto', period: 248.1, tagline: '248 Earth years' },
+  ];
+  const STORE_KEY = 'cosmicAgeBirth';
+
+  let state = {
+    birthISO: null, hasResult: false,
+    earthYears: 0, ymd: { y: 0, m: 0, d: 0 },
+    nextBirthdayDays: 0, heartbeats: 0, ages: {},
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const input = $('birthInput'), errEl = $('err'), emptyEl = $('emptyState'),
+        resultsEl = $('results'), gridEl = $('bodyGrid'), statsEl = $('earthStats'),
+        factEl = $('funFact');
+
+  input.max = new Date().toISOString().slice(0, 10);
+
+  function daysInMonth(m, y) { return new Date(y, m + 1, 0).getDate(); }
+  function startOfToday(now) { return new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
+
+  function ymdFrom(birth, now) {
+    let y = now.getFullYear() - birth.getFullYear();
+    let m = now.getMonth() - birth.getMonth();
+    let d = now.getDate() - birth.getDate();
+    if (d < 0) { m -= 1; d += daysInMonth(now.getMonth() === 0 ? 11 : now.getMonth() - 1, now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()); }
+    if (m < 0) { y -= 1; m += 12; }
+    return { y, m, d };
+  }
+
+  function nextBirthdayDays(birth, now) {
+    const bd = new Date(now.getFullYear(), birth.getMonth(), birth.getDate());
+    if (bd.getTime() < startOfToday(now).getTime()) bd.setFullYear(bd.getFullYear() + 1);
+    return Math.round((bd.getTime() - startOfToday(now).getTime()) / DAY_MS);
+  }
+
+  function compute() {
+    const iso = input.value;
+    if (!iso) { showError('Please pick a birth date.'); return false; }
+    const birth = new Date(iso + 'T00:00:00');
+    const now = new Date();
+    if (isNaN(birth.getTime())) { showError('That date is not valid.'); return false; }
+    if (birth.getTime() > now.getTime()) { showError('That date is in the future! 🚀'); return false; }
+    showError('');
+    const earthYears = (now.getTime() - birth.getTime()) / YEAR_MS;
+    state.birthISO = iso;
+    state.hasResult = true;
+    state.earthYears = earthYears;
+    state.ymd = ymdFrom(birth, now);
+    state.nextBirthdayDays = nextBirthdayDays(birth, now);
+    state.heartbeats = earthYears * 365.2425 * 24 * 60 * 80;
+    state.ages = {};
+    for (const b of BODIES) state.ages[b.id] = earthYears / b.period;
+    try { localStorage.setItem(STORE_KEY, iso); } catch (e) {}
+    render();
+    return true;
+  }
+
+  function humanizeAge(v) {
+    if (v < 1) return v.toFixed(3) + ' yrs';
+    if (v < 10) return v.toFixed(2) + ' yrs';
+    return v.toFixed(1) + ' yrs';
+  }
+
+  function render() {
+    if (!state.hasResult) {
+      emptyEl.classList.remove('hidden');
+      resultsEl.classList.add('hidden');
+      return;
+    }
+    emptyEl.classList.add('hidden');
+    resultsEl.classList.remove('hidden');
+
+    statsEl.innerHTML = '';
+    const stats = [
+      { label: 'Earth age', value: state.ymd.y + 'y ' + state.ymd.m + 'm ' + state.ymd.d + 'd' },
+      { label: 'Next birthday', value: state.nextBirthdayDays === 0 ? 'It\u2019s today! 🎉' : 'in ' + state.nextBirthdayDays + ' day' + (state.nextBirthdayDays === 1 ? '' : 's') },
+      { label: 'Heartbeats lived', value: Math.round(state.heartbeats / 1e6) + 'M', small: ' ≈ ' + Math.round(state.heartbeats).toLocaleString('en-US') },
+    ];
+    for (const s of stats) {
+      const el = document.createElement('div');
+      el.className = 'stat' + (s.label === 'Earth age' ? ' earth-stat' : '');
+      el.innerHTML = '<div class="label">' + s.label + '</div><div class="value">' + s.value + (s.small ? '<small> ' + s.small + '</small>' : '') + '</div>';
+      statsEl.appendChild(el);
+    }
+    statsEl.querySelector('.earth-stat').id = 'earthCard';
+
+    gridEl.innerHTML = '';
+    for (const b of BODIES) {
+      const el = document.createElement('div');
+      el.className = 'card' + (b.id === 'earth' ? ' earth' : '');
+      el.id = 'card-' + b.id;
+      el.innerHTML =
+        '<div class="planet ' + b.id + '"></div>' +
+        '<div class="name">' + b.name + (b.id === 'earth' ? '<span class="badge">you are here</span>' : '') + '</div>' +
+        '<div class="age" id="age-' + b.id + '">' + humanizeAge(state.ages[b.id]) + '</div>' +
+        '<div class="caption">1 year = ' + b.tagline + '</div>';
+      gridEl.appendChild(el);
+    }
+
+    const home = state.ages.jupiter;
+    factEl.textContent = 'Did you know? An 80-year Earth lifetime is only ' +
+      (80 / 11.8626).toFixed(2) + ' Jupiter years — but a staggering ' +
+      (80 / 0.240846).toFixed(0) + ' Mercury years.';
+  }
+
+  function showError(msg) { errEl.textContent = msg; }
+
+  function reset() {
+    state = { birthISO: null, hasResult: false, earthYears: 0, ymd: { y: 0, m: 0, d: 0 }, nextBirthdayDays: 0, heartbeats: 0, ages: {} };
+    input.value = '';
+    showError('');
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    render();
+  }
+
+  $('calcBtn').addEventListener('click', compute);
+  $('resetBtn').addEventListener('click', reset);
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') compute(); });
+
+  // Restore saved birth date
+  try {
+    const saved = localStorage.getItem(STORE_KEY);
+    if (saved) { input.value = saved; compute(); }
+  } catch (e) {}
+
+  // Animated starfield
+  const canvas = $('stars'), ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize() {
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    const n = Math.max(60, Math.min(220, Math.floor(window.innerWidth * window.innerHeight / 7000)));
+    stars = Array.from({ length: n }, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      r: Math.random() * 1.3 + 0.3, a: Math.random() * 0.7 + 0.2, s: Math.random() * 0.05 + 0.01,
+    }));
+  }
+  function frame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const st of stars) {
+      st.y += st.s;
+      if (st.y > canvas.height) { st.y = 0; st.x = Math.random() * canvas.width; }
+      ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,' + st.a + ')'; ctx.fill();
+    }
+    requestAnimationFrame(frame);
+  }
+  resize(); frame();
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', () => {
+    // cheap: animation keeps running; rAF auto-pauses in background tabs
+  });
+
+  window.__app = {
+    PERIODS: BODIES.map(function (b) { return { id: b.id, name: b.name, period: b.period }; }),
+    getState() { return JSON.parse(JSON.stringify(state)); },
+    setBirth(iso) { input.value = iso; compute(); return this.getState(); },
+    reset() { reset(); return this.getState(); },
+  };
+})();
+</script>
+</body>
+</html>
